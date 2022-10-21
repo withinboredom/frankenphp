@@ -1,4 +1,4 @@
-FROM php:8.2.0RC4-zts-bullseye AS php-base
+FROM php:8.2.0RC4-zts-alpine3.16 AS php-base
 
 # Note that this image is based on the official PHP image, once 8.3 is released, this stage can likely be removed
 
@@ -6,37 +6,38 @@ RUN rm -Rf /usr/local/include/php/ /usr/local/lib/libphp.* /usr/local/lib/php/ /
 
 ENV PHPIZE_DEPS \
     autoconf \
-    dpkg-dev \
+    dpkg-dev dpkg \
     file \
     g++ \
     gcc \
     libc-dev \
     make \
-    pkg-config \
+    pkgconf \
     re2c
 
-RUN apt-get update && \
-    apt-get -y --no-install-recommends install \
+RUN apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
-    libargon2-dev \
-    libcurl4-openssl-dev \
-    libonig-dev \
-    libreadline-dev \
+    argon2-dev \
+    coreutils \
+    curl-dev \
+    readline-dev \
     libsodium-dev \
-    libsqlite3-dev \
-    libssl-dev \
+    sqlite-dev \
+    openssl-dev \
     libxml2-dev \
-    zlib1g-dev \
+    gnu-libiconv-dev \
+    linux-headers \
+    oniguruma-dev \
     bison \
-    git \
-    && \
-    apt-get clean
+    git
 
-RUN git clone --depth=1 --single-branch --branch=PHP-8.2 https://github.com/php/php-src.git && \
-    cd php-src && \
-    # --enable-embed is only necessary to generate libphp.so, we don't use this SAPI directly
-    ./buildconf && \
-    ./configure \
+RUN git clone --depth=1 --single-branch --branch=PHP-8.2 https://github.com/php/php-src.git
+
+WORKDIR /php-src/
+
+# --enable-embed is only necessary to generate libphp.so, we don't use this SAPI directly
+RUN ./buildconf
+RUN ./configure \
         --enable-embed \
         --enable-zts \
         --disable-zend-signals \
@@ -67,19 +68,19 @@ RUN git clone --depth=1 --single-branch --branch=PHP-8.2 https://github.com/php/
     	# https://github.com/bwoebi/phpdbg-docs/issues/1#issuecomment-163872806 ("phpdbg is primarily a CLI debugger, and is not suitable for debugging an fpm stack.")
 		--disable-phpdbg \
         --with-config-file-path="$PHP_INI_DIR" \
-        --with-config-file-scan-dir="$PHP_INI_DIR/conf.d" && \
-    make -j$(nproc) && \
-    make install && \
-    rm -Rf php-src/ && \
-    echo "Creating src archive for building extensions\n" && \
-    tar -c -f /usr/src/php.tar.xz -J /php-src/ && \
-    ldconfig && \
-    php --version
+        --with-config-file-scan-dir="$PHP_INI_DIR/conf.d"
+RUN make -j$(nproc)
+RUN make install
+RUN rm -Rf /php-src/
+RUN echo "Creating src archive for building extensions\n"
+RUN tar -c -f /usr/src/php.tar.xz -J /php-src/
+#RUN ldconfig
+RUN php --version
 
 FROM php-base AS builder
 
-COPY --from=golang:bullseye /usr/local/go/bin/go /usr/local/bin/go
-COPY --from=golang:bullseye /usr/local/go /usr/local/go
+COPY --from=golang:alpine3.16 /usr/local/go/bin/go /usr/local/bin/go
+COPY --from=golang:alpine3.16 /usr/local/go /usr/local/go
 
 WORKDIR /go/src/app
 
@@ -106,9 +107,9 @@ RUN cd caddy/frankenphp && \
     cp frankenphp /usr/local/bin && \
     cp /go/src/app/caddy/frankenphp/Caddyfile /etc/Caddyfile
 
-ENTRYPOINT ["/bin/bash","-c"]
+ENTRYPOINT ["/bin/sh","-c"]
 
-FROM php:8.2.0RC4-zts-bullseye AS final
+FROM php:8.2.0RC4-zts-alpine3.16 AS final
 
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
