@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        dockerfile: [ "Dockerfile", "Dockerfile.alpine" ]
+        dockerfile: [ "Dockerfile" ]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -44,7 +44,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       matrix:
-        dockerfile: [ "Dockerfile", "Dockerfile.alpine" ]
+        dockerfile: [ "Dockerfile" ]
     steps:
       - uses: actions/checkout@v3
         with:
