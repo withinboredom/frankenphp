@@ -445,13 +445,13 @@ static void frankenphp_sapi_flush(void *server_context)
 
 	if (!ctx) return;
 	
-	if (ctx->current_request == 0) 
+	if (ctx->current_request == 0)
 	{
 		php_handle_aborted_connection();
 		return;
 	}
 
-	go_sapi_flush(ctx->current_request);
+	if (!go_sapi_flush(ctx->current_request)) php_handle_aborted_connection();
 }
 
 static size_t frankenphp_read_post(char *buffer, size_t count_bytes)
