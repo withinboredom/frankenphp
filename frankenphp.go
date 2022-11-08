@@ -483,20 +483,22 @@ func go_write_header(rh C.uintptr_t, status C.int) {
 }
 
 //export go_sapi_flush
-func go_sapi_flush(rh C.uintptr_t) {
+func go_sapi_flush(rh C.uintptr_t) bool {
 	r := cgo.Handle(rh).Value().(*http.Request)
 	fc := r.Context().Value(contextKey).(*FrankenPHPContext)
 
 	if fc.responseWriter == nil {
-		return
+		return false
 	}
 
 	flusher, ok := fc.responseWriter.(http.Flusher)
 	if !ok {
-		return
+		return false
 	}
 
 	flusher.Flush()
+	
+	return true
 }
 
 //export go_read_post
