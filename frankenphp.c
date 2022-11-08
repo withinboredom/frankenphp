@@ -405,11 +405,7 @@ static size_t frankenphp_ub_write(const char *str, size_t str_length)
 		return 0;
 	}
 
-	size_t wrote = go_ub_write(ctx->current_request ? ctx->current_request : ctx->main_request, (char *) str, str_length);
-	
-	if(wrote == 0 && str_length != 0) php_handle_aborted_connection();
-	
-	return wrote;
+	return go_ub_write(ctx->current_request ? ctx->current_request : ctx->main_request, (char *) str, str_length);
 }
 
 static int frankenphp_send_headers(sapi_headers_struct *sapi_headers)
