@@ -443,7 +443,13 @@ static void frankenphp_sapi_flush(void *server_context)
 {
 	frankenphp_server_context *ctx = (frankenphp_server_context *) server_context;
 
-	if (!ctx || ctx->current_request == 0) return;
+	if (!ctx) return;
+	
+	if (ctx->current_request == 0) 
+	{
+		php_handle_aborted_connection();
+		return;
+	}
 
 	go_sapi_flush(ctx->current_request);
 }
